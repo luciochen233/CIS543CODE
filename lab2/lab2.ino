@@ -113,11 +113,12 @@ void lab2_test(){
   Serial.println();
   delay(500);
 }
-enum states{NADA,FORWARD,LTURN,RFORWARD,RTURN,STOP};
+enum states{NADA,FORWARD,LTURN,RFORWARD,RTURN,FTURN,STOP};
 states robot = NADA;
 int turn = 0;
 float shift_distance = 0;
 float move_distance = 0;
+float total_distance = 120;
 
 void loop() {
   // put your main code here, to run repeatedly:
@@ -127,7 +128,7 @@ void loop() {
 //  delay(10);
   float front = analogRead(0);
   float right = analogRead(2);
-  
+  Serial.print(robot);
 
   switch(robot){
     case NADA:{
@@ -138,38 +139,42 @@ void loop() {
       forward(2);
       move_distance += 2;
       if(front > 400) robot = LTURN; 
-      if(move_distance > 60){
+      if(move_distance >= total_distance){
         robot = STOP;
       }
+      turn = 0;
       break;
     }
     
     case LTURN:{
-      local_turn(-90);
+      turn++;
+      local_turn(-87);
       robot = RFORWARD;
       break;
     }
     case RFORWARD:{
+
+      if(front > 400){
+        robot = LTURN;
+        break;
+      }
       
       if(right < 250) {
         forward(6);
+        if(turn % 2 == 1){
+          shift_distance += 6;
+        } else {
+          move_distance += 6;
+        }
+        
         robot = RTURN; 
         break;
       }
-      if(turn == 0){
+
+      if(turn %2 == 0){
+        move_distance += 2;
+      } else {
         shift_distance += 2;
-      }
-      if(turn == 1){
-         move_distance += 2;
-      }
-
-      
-      if(turn >=2){
-
-        local_turn(-90);
-        robot = STOP;
-        forward(60-move_distance);
-        break;
       }
       forward(2);
       break;
@@ -178,14 +183,24 @@ void loop() {
     case RTURN:{
       turn++;
       local_turn(90);
-      if(turn == 1){
-        forward(12);
+      forward(12);
+      
+      if(turn % 2 == 0){
         move_distance += 12;
+        robot = RFORWARD;
+        break;
+      } else {
+        shift_distance -= 12;
+        robot = FTURN;
       }
-      else{
-        forward(shift_distance + 9);
-      }
-      robot = RFORWARD;
+      break;
+    }
+
+    case FTURN:{
+      forward(shift_distance);
+      local_turn(-87);
+      robot = FORWARD;
+
       break;
     }
     case STOP:{
